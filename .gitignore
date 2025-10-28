@@ -1,0 +1,61 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node / Next.js
+node_modules/
+.next/
+.next-static/
+.out/
+.npm/
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.next/cache/
+.vercel/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.build/
+.python-version
+.venv/
+venv/
+.env
+.env.*
+.uv/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.swo
+*.orig
+
+# Coverage / Testing
+.coverage
+.coverage.*
+dist/
+build/
+htmlcov/
+pytestCache/
+.pytest_cache/
+
+# Logs
+logs/
+*.log
+
+# Misc
+*.local
+*.bak
+Thumbs.db
