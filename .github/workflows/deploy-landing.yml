@@ -3,9 +3,6 @@ name: Deploy Landing Page to GitHub Pages
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'diana_landing/**'
-      - '.github/workflows/deploy-landing.yml'
   workflow_dispatch:
 
 permissions:
