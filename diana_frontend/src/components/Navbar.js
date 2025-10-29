@@ -42,10 +42,10 @@ export default function Navbar({ onMenuClick }) {
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-200"></span>
             </Link>
             <Link 
-              href="/voice" 
+              href="/history" 
               className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md transition-all duration-200 relative group"
             >
-              Voice
+              History
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-200"></span>
             </Link>
             <Link 
@@ -54,6 +54,32 @@ export default function Navbar({ onMenuClick }) {
             >
               Settings
               <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-200"></span>
+            </Link>
+            <Link 
+              href="/terms" 
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md transition-all duration-200 relative group"
+            >
+              Terms
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-200"></span>
+            </Link>
+            <Link 
+              href="/contact" 
+              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-md transition-all duration-200 relative group"
+            >
+              Contact
+              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-200"></span>
+            </Link>
+            <Link 
+              href="/login" 
+              className="px-4 py-2 text-sm font-medium text-foreground bg-primary/10 hover:bg-primary/20 rounded-md transition-all duration-200"
+            >
+              Login
+            </Link>
+            <Link 
+              href="/register" 
+              className="px-4 py-2 text-sm font-semibold text-primary-foreground bg-primary hover:bg-primary/90 rounded-md transition-all duration-200"
+            >
+              Register
             </Link>
           </div>
 
@@ -104,11 +130,11 @@ export default function Navbar({ onMenuClick }) {
                 Chat
               </Link>
               <Link 
-                href="/voice" 
+                href="/history" 
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 py-3 px-4 rounded-lg hover:bg-accent/50"
               >
-                Voice
+                History
               </Link>
               <Link 
                 href="/settings" 
@@ -116,6 +142,34 @@ export default function Navbar({ onMenuClick }) {
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 py-3 px-4 rounded-lg hover:bg-accent/50"
               >
                 Settings
+              </Link>
+              <Link 
+                href="/terms" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 py-3 px-4 rounded-lg hover:bg-accent/50"
+              >
+                Terms
+              </Link>
+              <Link 
+                href="/contact" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 py-3 px-4 rounded-lg hover:bg-accent/50"
+              >
+                Contact
+              </Link>
+              <Link 
+                href="/login" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm font-medium text-foreground transition-all duration-200 py-3 px-4 rounded-lg bg-primary/10 hover:bg-primary/20"
+              >
+                Login
+              </Link>
+              <Link 
+                href="/register" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-sm font-semibold text-primary-foreground transition-all duration-200 py-3 px-4 rounded-lg bg-primary hover:bg-primary/90"
+              >
+                Register
               </Link>
             </div>
           </div>

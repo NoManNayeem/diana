@@ -3,7 +3,6 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import Link from "next/link";
 import { icons, featureIcons } from "@/config/icons";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -13,7 +12,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
       
       {/* Hero Section */}
       <motion.section 

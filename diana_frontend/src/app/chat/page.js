@@ -3,30 +3,30 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { icons } from "@/config/icons";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { useDianaChat } from "@/hooks/useDianaChat";
 import Sidebar from "@/components/Sidebar";
-import TextStreamer from "@/components/TextStreamer";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "Hello! I'm Diana, your AI assistant. How can I help you today?",
-      sender: "ai",
-      timestamp: new Date(),
-      isTyping: false,
-      isStreaming: false
-    }
-  ]);
-  const [inputText, setInputText] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [streamingMessageId, setStreamingMessageId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
+  const [inputText, setInputText] = useState("");
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const chatRootRef = useRef(null);
+
+  const {
+    messages,
+    append,
+    reload,
+    stop,
+    isLoading,
+    error,
+  } = useDianaChat();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -36,297 +36,278 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
-  const sendMessage = async (text) => {
-    if (!text.trim()) return;
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
-    const userMessage = {
-      id: Date.now(),
-      text: text.trim(),
-      sender: "user",
-      timestamp: new Date(),
-      isTyping: false,
-      isStreaming: false
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInputText("");
-    setIsLoading(true);
-
-    // Add typing indicator
-    const typingMessage = {
-      id: Date.now() + 1,
-      text: "",
-      sender: "ai",
-      timestamp: new Date(),
-      isTyping: true,
-      isStreaming: false
-    };
-    setMessages(prev => [...prev, typingMessage]);
-
-    try {
-      const response = await fetch('http://localhost:8000/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ user_query: text.trim() }),
-      });
-
-      const data = await response.json();
-      
-      // Remove typing indicator and add AI response with streaming
-      const aiMessageId = Date.now() + 2;
-      setStreamingMessageId(aiMessageId);
-      setMessages(prev => {
-        const withoutTyping = prev.filter(msg => !msg.isTyping);
-        return [...withoutTyping, {
-          id: aiMessageId,
-          text: data.response,
-          sender: "ai",
-          timestamp: new Date(),
-          isTyping: false,
-          isStreaming: true
-        }];
-      });
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setMessages(prev => {
-        const withoutTyping = prev.filter(msg => !msg.isTyping);
-        return [...withoutTyping, {
-          id: Date.now() + 2,
-          text: "Sorry, I'm having trouble connecting. Please try again.",
-          sender: "ai",
-          timestamp: new Date(),
-          isTyping: false,
-          isStreaming: false
-        }];
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleStreamingComplete = (messageId) => {
-    setStreamingMessageId(null);
-    setMessages(prev => 
-      prev.map(msg => 
-        msg.id === messageId 
-          ? { ...msg, isStreaming: false }
-          : msg
-      )
-    );
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    sendMessage(inputText);
+    if (!inputText.trim() || isLoading) return;
+
+    await append({ content: inputText });
+    setInputText("");
   };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage(inputText);
+      handleSubmit(e);
     }
   };
 
-  const toggleRecording = () => {
-    setIsRecording(!isRecording);
-    // TODO: Implement voice recording
+  const toggleFullscreen = () => {
+    try {
+      const target = chatRootRef.current;
+      if (!document.fullscreenElement && target) {
+        target.requestFullscreen().then(() => setIsFullscreen(true)).catch(err => {
+          console.error("Fullscreen request failed:", err);
+        });
+      } else if (document.fullscreenElement) {
+        document.exitFullscreen().then(() => setIsFullscreen(false)).catch(err => {
+          console.error("Exit fullscreen failed:", err);
+        });
+      }
+    } catch (err) {
+      console.error("Fullscreen toggle error:", err);
+    }
   };
 
-  const toggleSpeaking = () => {
-    setIsSpeaking(!isSpeaking);
-    // TODO: Implement text-to-speech
+  const toggleVoiceMode = () => {
+    setIsVoiceMode(!isVoiceMode);
+    // TODO: Implement voice recording functionality
   };
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex">
+    <div ref={chatRootRef} className={`min-h-screen bg-background text-foreground flex transition-all duration-300 ${
+      isFullscreen ? 'fixed inset-0 z-50' : ''
+    }`}>
       {/* Sidebar */}
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)}
+        isFullscreen={isFullscreen}
+      />
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        <Navbar onMenuClick={() => setIsSidebarOpen(true)} />
-        
-        {/* Chat Container */}
-        <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full p-4 sm:p-6">
-        <div className="flex-1 bg-card border border-border rounded-lg shadow-lg flex flex-col overflow-hidden">
-          {/* Chat Header */}
-          <div className="border-b border-border bg-secondary/30 p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+        {/* Header */}
+        {/* Chat Title Bar */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="border-b border-border bg-background/95"
+        >
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSidebarOpen(true)}
+                className="md:hidden"
+              >
+                <icons.menu className="w-5 h-5" />
+              </Button>
+              
+              <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-md">
                   <icons.robot className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="text-lg sm:text-xl font-semibold text-foreground">Diana AI Assistant</h1>
+                  <h1 className="text-lg font-semibold text-foreground">Diana AI Assistant</h1>
                   <p className="text-sm text-muted-foreground">Online • Ready to help</p>
                 </div>
               </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              {/* Voice Mode Toggle */}
+              <Button
+                variant={isVoiceMode ? "default" : "outline"}
+                size="icon"
+                onClick={toggleVoiceMode}
+                className="transition-all duration-200"
+              >
+                {isVoiceMode ? (
+                  <icons.microphone className="w-4 h-4" />
+                ) : (
+                  <icons.volumeMute className="w-4 h-4" />
+                )}
+              </Button>
               
-              <div className="flex items-center space-x-2">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={toggleSpeaking}
-                  className={`p-2 rounded-full transition-colors ${
-                    isSpeaking 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  {isSpeaking ? <icons.volumeUp className="w-4 h-4" /> : <icons.volumeMute className="w-4 h-4" />}
-                </motion.button>
-              </div>
+              {/* Fullscreen Toggle */}
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={toggleFullscreen}
+                className="transition-all duration-200"
+              >
+                {isFullscreen ? (
+                  <icons.compress className="w-4 h-4" />
+                ) : (
+                  <icons.expand className="w-4 h-4" />
+                )}
+              </Button>
             </div>
           </div>
+        </motion.div>
 
-          {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 sm:space-y-4">
-          <AnimatePresence>
-            {messages.map((message) => (
-              <motion.div
-                key={message.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`flex items-start space-x-2 sm:space-x-3 max-w-[85%] sm:max-w-[80%] ${
-                  message.sender === 'user' ? 'flex-row-reverse space-x-reverse' : ''
-                }`}>
-                  {/* Avatar */}
-                  <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    message.sender === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {message.sender === 'user' ? (
-                      <icons.user className="w-3 h-3 sm:w-4 sm:h-4" />
-                    ) : (
-                      <icons.robot className="w-3 h-3 sm:w-4 sm:h-4" />
-                    )}
-                  </div>
-                  
-                  {/* Message Content */}
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.2 }}
-                    className={`rounded-lg px-4 py-3 shadow-sm ${
-                      message.sender === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary text-foreground border border-border'
-                    }`}
+        {/* Chat Container */}
+        <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full p-4">
+          <Card className="flex-1 flex flex-col overflow-hidden shadow-lg">
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <AnimatePresence>
+                {messages.map((message, index) => (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    {message.isTyping ? (
+                    <div className={`flex items-start space-x-3 max-w-[80%] ${
+                      message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+                    }`}>
+                      {/* Avatar */}
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        message.role === 'user' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {message.role === 'user' ? (
+                          <icons.user className="w-4 h-4" />
+                        ) : (
+                          <icons.robot className="w-4 h-4" />
+                        )}
+                      </div>
+                      
+                      {/* Message Content */}
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.2 }}
+                        className={`rounded-lg px-4 py-3 shadow-sm ${
+                          message.role === 'user'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-foreground border border-border'
+                        }`}
+                      >
+                        <div className="prose prose-sm max-w-none">
+                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                            {message.content}
+                          </p>
+                        </div>
+                        <p suppressHydrationWarning className={`text-xs mt-2 ${
+                          message.role === 'user' 
+                            ? 'text-primary-foreground/70' 
+                            : 'text-muted-foreground'
+                        }`}>
+                          {isHydrated ? message.createdAt.toLocaleTimeString() : ""}
+                        </p>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              
+              {/* Loading Indicator */}
+              {isLoading && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex justify-start"
+                >
+                  <div className="flex items-start space-x-3 max-w-[80%]">
+                    <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center">
+                      <icons.robot className="w-4 h-4" />
+                    </div>
+                    <div className="bg-secondary text-foreground border border-border rounded-lg px-4 py-3">
                       <div className="flex items-center space-x-2">
                         <motion.div
                           animate={{ rotate: 360 }}
                           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         >
-                          <icons.spinner className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <icons.spinner className="w-4 h-4" />
                         </motion.div>
-                        <span className="text-xs sm:text-sm">Diana is typing...</span>
+                        <span className="text-sm">Diana is thinking...</span>
                       </div>
-                    ) : (
-                      <div>
-                        <p className="text-xs sm:text-sm leading-relaxed">
-                          {message.isStreaming && message.id === streamingMessageId ? (
-                            <TextStreamer 
-                              text={message.text} 
-                              speed={20}
-                              onComplete={() => handleStreamingComplete(message.id)}
-                            />
-                          ) : (
-                            message.text
-                          )}
-                        </p>
-                        <p className={`text-xs mt-1 sm:mt-2 ${
-                          message.sender === 'user' 
-                            ? 'text-primary-foreground/70' 
-                            : 'text-muted-foreground'
-                        }`}>
-                          {message.timestamp.toLocaleTimeString()}
-                        </p>
-                      </div>
-                    )}
-                  </motion.div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input Area */}
-          <div className="border-t border-border bg-secondary/30 p-4 sm:p-6">
-          <form onSubmit={handleSubmit} className="flex items-end space-x-2 sm:space-x-3">
-            <div className="flex-1 relative">
-              <textarea
-                ref={inputRef}
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type your message here..."
-                className="w-full p-3 sm:p-4 pr-10 sm:pr-12 border border-border bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-sm sm:text-base rounded-lg"
-                rows={1}
-                style={{ minHeight: '44px', maxHeight: '120px' }}
-                onInput={(e) => {
-                  e.target.style.height = 'auto';
-                  e.target.style.height = e.target.scrollHeight + 'px';
-                }}
-              />
-              
-              {/* Voice Recording Button */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                type="button"
-                onClick={toggleRecording}
-                className={`absolute right-2 sm:right-3 bottom-2 sm:bottom-3 p-1.5 sm:p-2 rounded-full transition-colors ${
-                  isRecording 
-                    ? 'bg-red-500 text-white' 
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
-              >
-                {isRecording ? <icons.stop className="w-3 h-3 sm:w-4 sm:h-4" /> : <icons.microphone className="w-3 h-3 sm:w-4 sm:h-4" />}
-              </motion.button>
-            </div>
-            
-            {/* Send Button */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              type="submit"
-              disabled={!inputText.trim() || isLoading}
-              className="p-3 sm:p-4 bg-primary text-primary-foreground rounded-xl sm:rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
-            >
-              {isLoading ? (
-                <icons.spinner className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-              ) : (
-                <icons.paperPlane className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                  </div>
+                </motion.div>
               )}
-            </motion.button>
-          </form>
-          
-          {/* Recording Indicator */}
-          {isRecording && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-2 sm:mt-3 flex items-center space-x-2 text-red-500"
-            >
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-              <span className="text-xs sm:text-sm">Recording... Click stop when finished</span>
-            </motion.div>
-          )}
-          </div>
+              
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <div className="border-t border-border p-4">
+              <form onSubmit={handleSubmit} className="flex items-end space-x-3">
+                <div className="flex-1 relative">
+                  <Textarea
+                    ref={inputRef}
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder={isVoiceMode ? "Voice mode active - click to speak" : "Type your message here..."}
+                    className="min-h-[44px] max-h-32 resize-none pr-12"
+                    disabled={isLoading}
+                  />
+                  
+                  {/* Voice Recording Button */}
+                  {isVoiceMode && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="absolute right-2 bottom-2 h-8 w-8"
+                      onClick={() => {
+                        // TODO: Implement voice recording
+                        console.log('Voice recording...');
+                      }}
+                    >
+                      <icons.microphone className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                {/* Send Button */}
+                <Button
+                  type="submit"
+                  disabled={!inputText.trim() || isLoading}
+                  className="px-6"
+                >
+                  {isLoading ? (
+                    <icons.spinner className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <icons.paperPlane className="w-4 h-4" />
+                  )}
+                </Button>
+              </form>
+              
+              {/* Error Message */}
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-2 text-sm text-destructive"
+                >
+                  {error}
+                </motion.div>
+              )}
+            </div>
+          </Card>
         </div>
-        </div>
-        
-        <Footer />
       </div>
     </div>
   );

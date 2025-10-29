@@ -21,7 +21,12 @@ import {
   FaPlus,
   FaEdit,
   FaTrash,
-  FaCog
+  FaCog,
+  FaExpand,
+  FaCompress,
+  FaSearch,
+  FaHistory,
+  FaCog as FaSettings
 } from "react-icons/fa";
 
 // Centralized icon configuration
@@ -58,7 +63,13 @@ export const icons = {
   plus: FaPlus,
   edit: FaEdit,
   trash: FaTrash,
-  settings: FaCog,
+  settings: FaSettings,
+  
+  // Fullscreen & UI
+  expand: FaExpand,
+  compress: FaCompress,
+  search: FaSearch,
+  history: FaHistory,
 };
 
 // Feature icons with colors
