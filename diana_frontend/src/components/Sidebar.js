@@ -76,26 +76,49 @@ export default function Sidebar({ isOpen, onClose }) {
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
             <h3 className="text-sm font-semibold text-muted-foreground mb-3">Recent Conversations</h3>
             {conversations.map((conversation) => (
-              <button
+              <div
                 key={conversation.id}
-                className={`w-full text-left p-3 rounded-lg transition-colors group ${
+                className={`w-full text-left p-3 rounded-lg transition-colors group cursor-pointer ${
                   conversation.isActive
                     ? 'bg-primary/10 text-primary border border-primary/20'
                     : 'hover:bg-secondary text-muted-foreground hover:text-foreground'
                 }`}
+                onClick={() => {
+                  setConversations(prev => 
+                    prev.map(conv => ({ ...conv, isActive: conv.id === conversation.id }))
+                  );
+                }}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium truncate">{conversation.title}</span>
-                  <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-1 hover:bg-secondary rounded">
+                  <div 
+                    className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button 
+                      className="p-1 hover:bg-secondary rounded"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // TODO: Implement edit functionality
+                        console.log('Edit conversation:', conversation.id);
+                      }}
+                    >
                       <icons.edit className="w-3 h-3" />
                     </button>
-                    <button className="p-1 hover:bg-secondary rounded">
+                    <button 
+                      className="p-1 hover:bg-secondary rounded text-destructive hover:text-destructive/80"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm('Are you sure you want to delete this conversation?')) {
+                          setConversations(prev => prev.filter(conv => conv.id !== conversation.id));
+                        }
+                      }}
+                    >
                       <icons.trash className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
 

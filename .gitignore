@@ -3,6 +3,7 @@
 .AppleDouble
 .LSOverride
 
+.qodo/
 # Node / Next.js
 node_modules/
 .next/
