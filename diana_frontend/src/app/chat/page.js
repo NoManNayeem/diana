@@ -272,8 +272,7 @@ export default function ChatPage() {
                       variant="ghost"
                       className="absolute right-2 bottom-2 h-8 w-8"
                       onClick={() => {
-                        // TODO: Implement voice recording
-                        console.log('Voice recording...');
+                        // Implement voice recording integration here
                       }}
                     >
                       <icons.microphone className="w-4 h-4" />

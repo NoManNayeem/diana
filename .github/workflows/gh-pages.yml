@@ -1,4 +1,4 @@
-name: Deploy Frontend to GitHub Pages
+name: Deploy Landing + Frontend to GitHub Pages
 
 on:
   push:
@@ -29,18 +29,26 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Build
+      - name: Build Next.js export (served under /app)
         env:
           NEXT_EXPORT: 'true'
-          NEXT_PUBLIC_BASE_PATH: '/${{ github.event.repository.name }}'
+          # Pages hosts at /<repo>, we serve Next app at /<repo>/app
+          NEXT_PUBLIC_BASE_PATH: '/${{ github.event.repository.name }}/app'
         run: |
           npm run build
           npm run export
 
+      - name: Assemble Pages artifact (landing at root, Next at /app)
+        run: |
+          mkdir -p ../pages-dist
+          cp -R ../diana_landing/* ../pages-dist/
+          mkdir -p ../pages-dist/app
+          cp -R out/* ../pages-dist/app/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: diana_frontend/out
+          path: pages-dist
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
