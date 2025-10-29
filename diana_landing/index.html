@@ -554,6 +554,23 @@
             .section { padding: 3rem 0; }
             .section-lg { padding: 5rem 0; }
         }
+
+        /* Inline responsive helpers replacing Tailwind-like classes */
+        .features-grid { grid-template-columns: repeat(1, 1fr); }
+        @media (min-width: 768px) { /* md */
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (min-width: 1024px) { /* lg */
+            .features-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+        @media (min-width: 1024px) { /* lg */
+            .stats-grid { grid-template-columns: repeat(4, 1fr); }
+        }
         
         @media (max-width: 480px) {
             .container { padding: 0 0.75rem; }
@@ -668,7 +685,7 @@
                 </p>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div class="grid features-grid gap-8">
                 <div class="card">
                     <div class="feature-icon">🎤</div>
                     <h3 class="text-title mb-4">Voice Recognition</h3>
@@ -711,7 +728,7 @@
     <!-- Stats Section -->
     <section class="section" style="background: var(--gray-50);">
         <div class="container">
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
+            <div class="grid stats-grid gap-8">
                 <div class="stat">
                     <div class="stat-number">99.9%</div>
                     <div class="stat-label">Uptime</div>

@@ -29,14 +29,14 @@ This is a **monorepo** containing three main components:
 |-----------|------------|---------|--------|
 | **Backend** | FastAPI + Python | AI API & Voice Processing | 🚧 Development |
 | **Frontend** | Next.js + React | Chat Interface & UI | 🚧 Development |
-| **Landing** | HTML + Tailwind | Marketing & Branding | ✅ **Deployed** |
+| **Landing** | Static HTML/CSS/JS | Marketing & Branding | ✅ **Deployed** |
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - **Node.js** 18+ with npm
-- **Python** 3.11+ (3.12+ recommended)
+- **Python** 3.14+ (matches `Diana_Backend/pyproject.toml`)
 - **uv** (recommended) or pip for Python dependencies
 - **Git** for version control
 
@@ -73,6 +73,9 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 **Backend will be available at**: `http://localhost:8000`
 
+Notes:
+- CORS is currently limited to `http://localhost:3000`. Adjust in `Diana_Backend/main.py` if your frontend origin differs, or make it env-driven for production.
+
 ### 🎨 Frontend Development
 
 ```bash
@@ -84,6 +87,11 @@ npm install
 
 # Run development server
 npm run dev
+
+Useful scripts:
+- `npm run build` – production build
+- `npm run start` – run production build
+- `npm run export` – static export (supports GitHub Pages via `NEXT_PUBLIC_BASE_PATH`)
 ```
 
 **Frontend will be available at**: `http://localhost:3000`
@@ -95,7 +103,7 @@ npm run dev
 cd Diana_Backend
 uvicorn main:app --reload --port 8000
 
-# Terminal 2: Frontend  
+# Terminal 2: Frontend
 cd diana_frontend
 npm run dev
 
@@ -146,9 +154,8 @@ Diana/
 - **react-icons** - Icon library
 
 ### Landing Page
-- **HTML5** - Semantic markup
-- **Tailwind CSS** - Utility-first styling via CDN
-- **Vanilla JavaScript** - No framework dependencies
+- **HTML5 + CSS** - Standalone static page (no build step)
+- **Vanilla JavaScript** - Theme toggle, animations
 - **GitHub Pages** - Static site hosting
 
 ## 🎨 Design Philosophy
@@ -183,7 +190,15 @@ DEBUG=True
 ```env
 # Next.js environment variables
 NEXT_PUBLIC_API_URL=http://localhost:8000
+# Optional when hosting under a subpath (e.g., GitHub Pages):
+# NEXT_PUBLIC_BASE_PATH=/diana
 ```
+
+### Configuration Notes
+
+- If using static export (`npm run export`) and hosting under a subpath (e.g., GitHub Pages), set `NEXT_PUBLIC_BASE_PATH` so links and assets resolve correctly. The `next.config.mjs` already adapts `basePath`/`assetPrefix` when this is set.
+- Ensure `NEXT_PUBLIC_API_URL` is publicly reachable by the static site (client-side fetch).
+- Consider making backend CORS origins configurable via environment variables for non-local deployments.
 
 ### Code Quality
 
@@ -217,6 +232,7 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 - **Netlify**: Alternative static hosting
 - **Build Command**: `npm run build`
 - **Output Directory**: `.next`
+- **Static Export**: `npm run export` → `out/` (useful for GitHub Pages)
 
 ## 🤝 Contributing
 
