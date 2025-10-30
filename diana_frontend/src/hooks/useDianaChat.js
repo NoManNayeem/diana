@@ -1,16 +1,27 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 export function useDianaChat() {
-  const [messages, setMessages] = useState([
-    {
-      id: '1',
-      role: 'assistant',
-      content: "Hello! I'm Diana, your AI assistant. How can I help you today?",
-      createdAt: new Date(),
+  const [messages, setMessages] = useState(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem('diana_chat_messages') : null;
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return parsed.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }));
+      }
+    } catch (e) {
+      console.warn('chat:init:localStorage_parse_error', e);
     }
-  ]);
+    return [
+      {
+        id: '1',
+        role: 'assistant',
+        content: "Hello! I'm Diana, your AI assistant. How can I help you today?",
+        createdAt: new Date(),
+      }
+    ];
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -90,6 +101,15 @@ export function useDianaChat() {
   const stop = useCallback(() => {
     setIsLoading(false);
   }, []);
+
+  // persist messages
+  useEffect(() => {
+    try {
+      localStorage.setItem('diana_chat_messages', JSON.stringify(messages));
+    } catch (e) {
+      console.warn('chat:persist:error', e);
+    }
+  }, [messages]);
 
   return {
     messages,

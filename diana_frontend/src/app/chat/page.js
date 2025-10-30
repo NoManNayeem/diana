@@ -8,6 +8,11 @@ import Sidebar from "@/components/Sidebar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import MicButton from "@/components/MicButton";
+import { Message as AIMessage, MessageContent as AIMessageContent } from "@/components/ai-elements/message";
+import { Response as AIResponse } from "@/components/ai-elements/response";
+import { PromptInput as AIPromptInput } from "@/components/ai-elements/prompt-input";
+import { useUserPrefs } from "@/hooks/useUserPrefs";
 
 export default function ChatPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -15,9 +20,11 @@ export default function ChatPage() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [inputText, setInputText] = useState("");
+  const [renderedCount, setRenderedCount] = useState(30);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const chatRootRef = useRef(null);
+  const { prefs } = useUserPrefs();
 
   const {
     messages,
@@ -71,6 +78,28 @@ export default function ChatPage() {
       console.error("Fullscreen toggle error:", err);
     }
   };
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handler = (e) => {
+      const isMac = navigator.platform.toUpperCase().includes('MAC');
+      const cmd = isMac ? e.metaKey : e.ctrlKey;
+      if (cmd && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+      if (cmd && e.key === 'Enter') {
+        e.preventDefault();
+        if (!isLoading && inputText.trim()) {
+          append({ content: inputText }).then(() => setInputText(""));
+        }
+      }
+      if (e.key === 'Escape') {
+        if (isLoading) stop();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isLoading, inputText, append, stop]);
 
   const toggleVoiceMode = () => {
     setIsVoiceMode(!isVoiceMode);
@@ -143,6 +172,32 @@ export default function ChatPage() {
                   <icons.volumeMute className="w-4 h-4" />
                 )}
               </Button>
+
+              {/* Stop/Regenerate/Clear */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => stop()}
+                disabled={!isLoading}
+              >
+                Stop
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => reload()}
+                disabled={isLoading || messages.length === 0}
+              >
+                Regenerate
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setMessages([])}
+                disabled={messages.length === 0}
+              >
+                Clear
+              </Button>
               
               {/* Fullscreen Toggle */}
               <Button
@@ -165,58 +220,39 @@ export default function ChatPage() {
         <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full p-4">
           <Card className="flex-1 flex flex-col overflow-hidden shadow-lg">
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4" role="log" aria-live="polite" aria-relevant="additions">
+              {messages.length > renderedCount && (
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setRenderedCount((c) => Math.min(c + 30, messages.length))}
+                  >
+                    Load older messages
+                  </Button>
+                </div>
+              )}
               <AnimatePresence>
-                {messages.map((message, index) => (
+                {messages.slice(-renderedCount).map((message, index) => (
                   <motion.div
                     key={message.id}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: prefs.reducedMotion ? 0 : 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    exit={{ opacity: 0, y: prefs.reducedMotion ? 0 : -12 }}
+                    transition={{ duration: prefs.reducedMotion ? 0 : 0.2, delay: 0 }}
+                    className="max-w-[80%]"
                   >
-                    <div className={`flex items-start space-x-3 max-w-[80%] ${
-                      message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
-                    }`}>
-                      {/* Avatar */}
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                        message.role === 'user' 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {message.role === 'user' ? (
-                          <icons.user className="w-4 h-4" />
-                        ) : (
-                          <icons.robot className="w-4 h-4" />
-                        )}
-                      </div>
-                      
-                      {/* Message Content */}
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.2 }}
-                        className={`rounded-lg px-4 py-3 shadow-sm ${
-                          message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-secondary text-foreground border border-border'
-                        }`}
-                      >
-                        <div className="prose prose-sm max-w-none">
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                            {message.content}
-                          </p>
-                        </div>
-                        <p suppressHydrationWarning className={`text-xs mt-2 ${
-                          message.role === 'user' 
-                            ? 'text-primary-foreground/70' 
-                            : 'text-muted-foreground'
-                        }`}>
-                          {isHydrated ? message.createdAt.toLocaleTimeString() : ""}
-                        </p>
-                      </motion.div>
-                    </div>
+                    <AIMessage from={message.role}>
+                      <AIMessageContent>
+                        <AIResponse>{message.content}</AIResponse>
+                      </AIMessageContent>
+                    </AIMessage>
+                    <p
+                      suppressHydrationWarning
+                      className="text-xs text-muted-foreground mt-2"
+                    >
+                      {isHydrated ? message.createdAt.toLocaleTimeString() : ""}
+                    </p>
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -251,40 +287,63 @@ export default function ChatPage() {
             </div>
 
             {/* Input Area */}
-            <div className="border-t border-border p-4">
-              <form onSubmit={handleSubmit} className="flex items-end space-x-3">
+            <div className="border-t border-border p-4 space-y-2">
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => stop()}
+                  disabled={!isLoading}
+                >
+                  Stop
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => reload()}
+                  disabled={isLoading || messages.length === 0}
+                >
+                  Regenerate
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMessages([])}
+                  disabled={messages.length === 0}
+                >
+                  Clear
+                </Button>
+              </div>
+              <div className="flex items-end gap-2">
                 <div className="flex-1 relative">
-                  <Textarea
-                    ref={inputRef}
+                  <AIPromptInput
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                    onSubmit={(val) => {
+                      if (!val.trim() || isLoading) return;
+                      append({ content: val }).then(() => setInputText(""));
+                    }}
                     placeholder={isVoiceMode ? "Voice mode active - click to speak" : "Type your message here..."}
-                    className="min-h-[44px] max-h-32 resize-none pr-12"
                     disabled={isLoading}
+                    aria-label="Message input"
                   />
-                  
-                  {/* Voice Recording Button */}
                   {isVoiceMode && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      className="absolute right-2 bottom-2 h-8 w-8"
-                      onClick={() => {
-                        // Implement voice recording integration here
-                      }}
-                    >
-                      <icons.microphone className="w-4 h-4" />
-                    </Button>
+                    <div className="absolute right-2 bottom-2">
+                      <MicButton
+                        disabled={isLoading}
+                        onTranscript={(text) => {
+                          if (text) setInputText((prev) => (prev ? prev + " " + text : text));
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
-                
-                {/* Send Button */}
                 <Button
-                  type="submit"
+                  type="button"
                   disabled={!inputText.trim() || isLoading}
                   className="px-6"
+                  aria-label="Send message"
+                  onClick={(e) => handleSubmit(e)}
                 >
                   {isLoading ? (
                     <icons.spinner className="w-4 h-4 animate-spin" />
@@ -292,14 +351,13 @@ export default function ChatPage() {
                     <icons.paperPlane className="w-4 h-4" />
                   )}
                 </Button>
-              </form>
-              
-              {/* Error Message */}
+              </div>
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-2 text-sm text-destructive"
+                  className="text-sm text-destructive"
+                  role="status"
                 >
                   {error}
                 </motion.div>

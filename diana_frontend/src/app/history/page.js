@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { icons } from "@/config/icons";
@@ -8,12 +8,24 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 export default function HistoryPage() {
-  const [histories, setHistories] = useState([
-    { id: 1, title: "New Conversation", preview: "Hello! How can I help?", updatedAt: new Date() },
-    { id: 2, title: "AI Development Discussion", preview: "Let's discuss the latest AI trends", updatedAt: new Date(Date.now() - 3600_000) },
-    { id: 3, title: "Voice Recognition Setup", preview: "Configuring voice input/output", updatedAt: new Date(Date.now() - 86_400_000) },
-  ]);
+  const [histories, setHistories] = useState([]);
   const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('diana_chat_messages');
+      if (raw) {
+        const msgs = JSON.parse(raw);
+        const title = msgs[0]?.content?.slice(0, 40) || 'Conversation';
+        const last = msgs[msgs.length - 1];
+        const preview = last?.content?.slice(0, 80) || '';
+        const updatedAt = last?.createdAt ? new Date(last.createdAt) : new Date();
+        setHistories([{ id: 1, title, preview, updatedAt }]);
+      }
+    } catch (e) {
+      console.warn('history:load:error', e);
+    }
+  }, []);
 
   const filtered = histories.filter(h =>
     h.title.toLowerCase().includes(query.toLowerCase()) ||
