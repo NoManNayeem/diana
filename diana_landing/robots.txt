@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nomanayeem.github.io/diana/sitemap.xml
