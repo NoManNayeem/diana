@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import MicButton from "@/components/MicButton";
 import { Message as AIMessage, MessageContent as AIMessageContent } from "@/components/ai-elements/message";
 import { Response as AIResponse } from "@/components/ai-elements/response";
-import { PromptInput as AIPromptInput } from "@/components/ai-elements/prompt-input";
+// Removed AI Elements PromptInput due to input handling issues; using Textarea
 import { useUserPrefs } from "@/hooks/useUserPrefs";
 
 export default function ChatPage() {
@@ -33,6 +33,7 @@ export default function ChatPage() {
     stop,
     isLoading,
     error,
+    setMessages,
   } = useDianaChat();
 
   const scrollToBottom = () => {
@@ -240,19 +241,35 @@ export default function ChatPage() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: prefs.reducedMotion ? 0 : -12 }}
                     transition={{ duration: prefs.reducedMotion ? 0 : 0.2, delay: 0 }}
-                    className="max-w-[80%]"
+                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <AIMessage from={message.role}>
-                      <AIMessageContent>
-                        <AIResponse>{message.content}</AIResponse>
-                      </AIMessageContent>
-                    </AIMessage>
-                    <p
-                      suppressHydrationWarning
-                      className="text-xs text-muted-foreground mt-2"
-                    >
-                      {isHydrated ? message.createdAt.toLocaleTimeString() : ""}
-                    </p>
+                    <div className={`flex items-start gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''} max-w-[80%]`}>
+                      {/* Avatar */}
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        message.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {message.role === 'user' ? (
+                          <icons.user className="w-4 h-4" />
+                        ) : (
+                          <icons.robot className="w-4 h-4" />
+                        )}
+                      </div>
+
+                      {/* Message */}
+                      <div className={`min-w-0 ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
+                        <AIMessage from={message.role}>
+                          <AIMessageContent>
+                            <AIResponse>{message.content}</AIResponse>
+                          </AIMessageContent>
+                        </AIMessage>
+                        <p
+                          suppressHydrationWarning
+                          className="text-xs text-muted-foreground mt-2"
+                        >
+                          {isHydrated ? message.createdAt.toLocaleTimeString() : ""}
+                        </p>
+                      </div>
+                    </div>
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -316,14 +333,13 @@ export default function ChatPage() {
               </div>
               <div className="flex items-end gap-2">
                 <div className="flex-1 relative">
-                  <AIPromptInput
+                  <Textarea
+                    ref={inputRef}
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
-                    onSubmit={(val) => {
-                      if (!val.trim() || isLoading) return;
-                      append({ content: val }).then(() => setInputText(""));
-                    }}
+                    onKeyPress={handleKeyPress}
                     placeholder={isVoiceMode ? "Voice mode active - click to speak" : "Type your message here..."}
+                    className="min-h-[44px] max-h-32 resize-none pr-12"
                     disabled={isLoading}
                     aria-label="Message input"
                   />
