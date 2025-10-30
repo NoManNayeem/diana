@@ -233,14 +233,14 @@ export default function ChatPage() {
                   </Button>
                 </div>
               )}
-              <AnimatePresence>
+              <AnimatePresence initial={false}>
                 {messages.slice(-renderedCount).map((message, index) => (
                   <motion.div
                     key={message.id}
-                    initial={{ opacity: 0, y: prefs.reducedMotion ? 0 : 12 }}
+                    initial={false}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: prefs.reducedMotion ? 0 : -12 }}
-                    transition={{ duration: prefs.reducedMotion ? 0 : 0.2, delay: 0 }}
+                    exit={isHydrated && !prefs.reducedMotion ? { opacity: 0, y: -12 } : { opacity: 1, y: 0 }}
+                    transition={isHydrated && !prefs.reducedMotion ? { duration: 0.2 } : { duration: 0 }}
                     className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
                     <div className={`flex items-start gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''} max-w-[80%]`}>
